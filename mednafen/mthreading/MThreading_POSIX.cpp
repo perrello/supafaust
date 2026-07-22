@@ -29,7 +29,9 @@
 //
 //
 //
-#if (!defined(HAVE_PTHREAD_CONDATTR_SETCLOCK) && defined(HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP)) || defined(__APPLE__)
+#if defined(__ANDROID__)
+ #define MDFN_USE_COND_TIMEDWAIT_MONOTONIC_NP
+#elif (!defined(HAVE_PTHREAD_CONDATTR_SETCLOCK) && defined(HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP)) || defined(__APPLE__)
  #define MDFN_USE_COND_TIMEDWAIT_RELATIVE_NP
 #endif
 
@@ -425,7 +427,32 @@ bool Cond_Wait(Cond* cond, Mutex* mutex)
  return true;
 }
 
-#if !defined(MDFN_USE_COND_TIMEDWAIT_RELATIVE_NP)
+#if defined(MDFN_USE_COND_TIMEDWAIT_MONOTONIC_NP)
+bool Cond_TimedWait(Cond* cond, Mutex* mutex, unsigned ms)
+{
+    struct timespec abstime;
+
+    memset(&abstime, 0, sizeof(abstime));
+
+    if(clock_gettime(CLOCK_MONOTONIC, &abstime))
+        return false;
+
+    TimeSpec_AddNanoseconds(&abstime, (uint64)ms * 1000 * 1000);
+
+    int ctw_rv = pthread_cond_timedwait_monotonic_np(
+      &cond->c,
+      &mutex->m,
+      &abstime
+    );
+
+    if(ctw_rv == ETIMEDOUT)
+      return false;
+    else if(ctw_rv)
+      return false;
+
+    return true;
+}
+#elif !defined(MDFN_USE_COND_TIMEDWAIT_RELATIVE_NP)
 bool Cond_TimedWait(Cond* cond, Mutex* mutex, unsigned ms)
 {
  struct timespec abstime;
