@@ -1,4 +1,12 @@
 *.o
+*.a
 *.so
 *.dll
 *.dylib
+*.bc
+*.nro
+*.elf
+*.nso
+*.nacp
+*.pfs0
+dist/

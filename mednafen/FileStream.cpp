@@ -38,6 +38,10 @@
  #include <sys/mman.h>
 #endif
 
+#ifndef SSIZE_MAX
+ #define SSIZE_MAX ((ssize_t)(((size_t)-1) >> 1))
+#endif
+
 namespace Mednafen
 {
 
