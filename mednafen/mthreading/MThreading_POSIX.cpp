@@ -31,6 +31,9 @@
 //
 #if defined(__ANDROID__)
  #define MDFN_USE_COND_TIMEDWAIT_MONOTONIC_NP
+#elif defined(__SWITCH__) || defined(HAVE_LIBNX)
+ /* libnx pthread lacks a reliable CLOCK_MONOTONIC cond clock; use realtime. */
+ #define MDFN_USE_COND_TIMEDWAIT_REALTIME
 #elif (!defined(HAVE_PTHREAD_CONDATTR_SETCLOCK) && defined(HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP)) || defined(__APPLE__)
  #define MDFN_USE_COND_TIMEDWAIT_RELATIVE_NP
 #endif
@@ -256,12 +259,12 @@ uint64 Thread_SetAffinity(Thread* thread, const uint64 mask)
 }
 #else
 
-#warning "Compiling without affinity setting support."
 uint64 Thread_SetAffinity(Thread* thread, uint64 mask)
 {
  assert(mask != 0);
- //
- throw MDFN_Error(0, _("Setting affinity to 0x%016llx failed: %s"), (unsigned long long)mask, _("pthread_setaffinity_np() not available."));
+ // Affinity control is unavailable (e.g. Switch/libnx); leave scheduling alone.
+ (void)thread;
+ return 0;
 }
 #endif
 
@@ -365,7 +368,7 @@ static void CreateCond(Cond* ret)
   throw MDFN_Error(ene.Errno(), _("%s failed: %s"), "pthread_condattr_init()", ene.StrError());
  }
 
-#if !defined(MDFN_USE_COND_TIMEDWAIT_RELATIVE_NP)
+#if !defined(MDFN_USE_COND_TIMEDWAIT_RELATIVE_NP) && !defined(MDFN_USE_COND_TIMEDWAIT_REALTIME)
  if((ptec = pthread_condattr_setclock(&attr, CLOCK_MONOTONIC)))
  {
   ErrnoHolder ene(ptec);
@@ -451,6 +454,26 @@ bool Cond_TimedWait(Cond* cond, Mutex* mutex, unsigned ms)
       return false;
 
     return true;
+}
+#elif defined(MDFN_USE_COND_TIMEDWAIT_REALTIME)
+bool Cond_TimedWait(Cond* cond, Mutex* mutex, unsigned ms)
+{
+ struct timespec abstime;
+
+ memset(&abstime, 0, sizeof(abstime));
+
+ if(clock_gettime(CLOCK_REALTIME, &abstime))
+  return false;
+
+ TimeSpec_AddNanoseconds(&abstime, (uint64)ms * 1000 * 1000);
+
+ int ctw_rv = pthread_cond_timedwait(&cond->c, &mutex->m, &abstime);
+ if(ctw_rv == ETIMEDOUT)
+  return false;
+ else if(ctw_rv)
+  return false;
+
+ return true;
 }
 #elif !defined(MDFN_USE_COND_TIMEDWAIT_RELATIVE_NP)
 bool Cond_TimedWait(Cond* cond, Mutex* mutex, unsigned ms)

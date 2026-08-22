@@ -3,9 +3,12 @@
 #define MDFN_SNES_FAUST_SPC700_IPL_HLE 1
 #define MDFN_SNES_FAUST_SKETCHYSPC700OPT 1
 //#define MDFN_SNES_FAUST_SKETCHYPPUOPT 1
-#define HAVE_SEM_TIMEDWAIT 1
 
-#if !defined(ANDROID) && !defined(__APPLE__)
+#if !defined(__SWITCH__) && !defined(HAVE_LIBNX)
+#define HAVE_SEM_TIMEDWAIT 1
+#endif
+
+#if !defined(ANDROID) && !defined(__APPLE__) && !defined(__SWITCH__) && !defined(HAVE_LIBNX)
 #define PTHREAD_AFFINITY_NP cpu_set_t
 #endif
 

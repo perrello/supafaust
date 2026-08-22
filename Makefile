@@ -187,6 +187,17 @@ else ifeq ($(platform), wii)
 
    EXTRA_INCLUDES := -I$(DEVKITPRO)/libogc/include
    STATIC_LINKING = 1
+
+# Nintendo Switch (libnx / Horizon)
+else ifeq ($(platform), libnx)
+   export DEPSDIR := $(CURDIR)
+   include $(DEVKITPRO)/libnx/switch_rules
+   TARGET := $(TARGET_NAME)_libretro_$(platform).a
+   ENDIANNESS_DEFINES := -DLSB_FIRST -DSWITCH=1 -D__SWITCH__ -DHAVE_LIBNX -U__linux__ -U__linux
+   EXTRA_INCLUDES := -I$(LIBNX)/include/
+   FLAGS += -fPIE -ffunction-sections -fdata-sections -ftls-model=local-exec
+   FLAGS += -march=armv8-a -mtune=cortex-a57 -mtp=soft -mcpu=cortex-a57+crc+fp+simd
+   STATIC_LINKING = 1
 else ifneq (,$(findstring rpi,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.so
    fpic := -fPIC

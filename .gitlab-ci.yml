@@ -38,6 +38,11 @@ include:
   - project: 'libretro-infrastructure/ci-templates'
     file: '/android-jni.yml'
 
+  ################################## CONSOLES ################################
+  # Nintendo Switch (libnx / Horizon)
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/libnx-static.yml'
+
   #################################### MISC ##################################
   # webOS 32-bit (LGTV)
   - project: 'libretro-infrastructure/ci-templates'
@@ -107,6 +112,13 @@ android-x86_64:
 android-x86:
   extends:
     - .libretro-android-jni-x86
+    - .core-defs
+
+################################### CONSOLES #################################
+# Nintendo Switch (libnx / Horizon)
+libretro-build-libnx-aarch64:
+  extends:
+    - .libretro-libnx-static-retroarch-master
     - .core-defs
 
 #################################### MISC ####################################
