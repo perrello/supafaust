@@ -53,6 +53,18 @@ Stream* NativeVFS::open(const std::string& path, const uint32 mode, const bool t
  if(canary != CanaryType::open)
   _exit(-1);
 
+#ifndef WIN32
+ // A missing optional file is not an error; skip the throwing open so builds without
+ // C++ exception catching (the web build) load content normally.
+ if(!throw_on_noent && mode == MODE_READ)
+ {
+  struct stat st;
+
+  if(::stat(path.c_str(), &st) != 0 && errno == ENOENT)
+   return nullptr;
+ }
+#endif
+
  try
  {
   return new FileStream(path, mode);

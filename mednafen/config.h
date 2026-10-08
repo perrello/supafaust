@@ -4,11 +4,11 @@
 #define MDFN_SNES_FAUST_SKETCHYSPC700OPT 1
 //#define MDFN_SNES_FAUST_SKETCHYPPUOPT 1
 
-#if !defined(__SWITCH__) && !defined(HAVE_LIBNX)
+#if !defined(__SWITCH__) && !defined(HAVE_LIBNX) && !defined(__EMSCRIPTEN__)
 #define HAVE_SEM_TIMEDWAIT 1
 #endif
 
-#if !defined(ANDROID) && !defined(__APPLE__) && !defined(__SWITCH__) && !defined(HAVE_LIBNX)
+#if !defined(ANDROID) && !defined(__APPLE__) && !defined(__SWITCH__) && !defined(HAVE_LIBNX) && !defined(__EMSCRIPTEN__)
 #define PTHREAD_AFFINITY_NP cpu_set_t
 #endif
 

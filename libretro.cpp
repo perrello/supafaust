@@ -489,6 +489,10 @@ RETRO_API bool retro_serialize(void* data, size_t size)
 
 RETRO_API bool retro_unserialize(const void* data, size_t size)
 {
+ // States from other emulators (such as Snes9x) are rejected up front instead of throwing.
+ if(size < 8 || memcmp(data, "MDFNRINP", 8))
+  return false;
+
  ExtMemStream ssms(data, size);
  MDFNSS_LoadSM(&ssms, true);
  return true;
@@ -691,7 +695,12 @@ MDFN_COLD RETRO_API bool retro_load_game(const retro_game_info* game)
   pipe_option("supafaust_superfx_clock_rate", "snes_faust.superfx.clock_rate");
   pipe_option_bool("supafaust_superfx_icache", "snes_faust.superfx.icache");
 
+#ifdef __EMSCRIPTEN__
+  // The web build has no pthreads, so the PPU cannot render on its own thread.
+  MDFNI_SetSetting("snes_faust.renderer", "st");
+#else
   MDFNI_SetSetting("snes_faust.renderer", "mt");
+#endif
   //
   //
   //
@@ -786,26 +795,37 @@ RETRO_API unsigned retro_get_region(void)
 namespace MDFN_IEN_SNES_FAUST
 {
  MDFN_COLD uint8* GetNV(uint32* size);
+ MDFN_COLD uint8* GetWRAM(uint32* size);
 }
 
 RETRO_API void* retro_get_memory_data(unsigned id)
 {
  assert(cgi);
+ uint32 size;
+
+ if(id == RETRO_MEMORY_SYSTEM_RAM)
+  return MDFN_IEN_SNES_FAUST::GetWRAM(&size);
+
  if(/*!cgi->GetNV ||*/ id != RETRO_MEMORY_SAVE_RAM)
   return nullptr;
  //
- uint32 size;
-
  return MDFN_IEN_SNES_FAUST::GetNV(&size); //cgi->GetNV(&size);
 }
 
 RETRO_API size_t retro_get_memory_size(unsigned id)
 {
  assert(cgi);
+ uint32 size = 0;
+
+ if(id == RETRO_MEMORY_SYSTEM_RAM)
+ {
+  MDFN_IEN_SNES_FAUST::GetWRAM(&size);
+  return size;
+ }
+
  if(/*!cgi->GetNV ||*/ id != RETRO_MEMORY_SAVE_RAM)
   return 0;
  //
- uint32 size = 0;
 
  MDFN_IEN_SNES_FAUST::GetNV(&size); //cgi->GetNV(&size);
 
